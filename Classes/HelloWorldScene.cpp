@@ -68,13 +68,15 @@ bool HelloWorld::init() {
 			this,
 			menu_selector(HelloWorld::menuCloseCallback));
 		CC_BREAK_IF(! pCloseItem);
-        
-		// Place the menu item bottom-right conner.
-        CCSize visibleSize = CCDirector::sharedDirector()->getVisibleSize();
-        CCPoint origin = CCDirector::sharedDirector()->getVisibleOrigin();
-        
-		pCloseItem->setPosition(ccp(origin.x + visibleSize.width - pCloseItem->getContentSize().width/2,
-                                    origin.y + pCloseItem->getContentSize().height/2));
+
+    CCSize visibleSize = CCDirector::sharedDirector()->getVisibleSize();
+    CCPoint origin = CCDirector::sharedDirector()->getVisibleOrigin();
+
+    // Place the menu item bottom-right corner.
+		pCloseItem->setPosition(ccp(origin.x + visibleSize.width -
+		    pCloseItem->getContentSize().width/2,
+        origin.y + visibleSize.height -
+        pCloseItem->getContentSize().height/2));
 
 		// Create a menu with the "close" menu item, it's an auto release object.
 		CCMenu* pMenu = CCMenu::create(pCloseItem, NULL);
@@ -111,7 +113,7 @@ bool HelloWorld::init() {
 		_ball->setTextureRect(rect_ball);
 		_ball->setPosition(ccp(origin.x + visibleSize.width/2,
                                  origin.y + visibleSize.height/2));
-		_ball->setScale(0.6);
+		_ball->setScale(0.5);
 		this->addChild(_ball);
 
 		CCPoint new_target(visibleSize.width + 100, visibleSize.height + 500);
@@ -283,30 +285,32 @@ void HelloWorld::updateGame(float dt) {
 			winSize.width+2*rect_size, rect_size );
 
 	CCRect ballRect = CCRectMake(
-			_ball->getPosition().x - (_ball->getContentSize().width*_ball->getScale()/2),
-			_ball->getPosition().y - (_ball->getContentSize().height*_ball->getScale()/2),
-			_ball->getContentSize().width*_ball->getScale(),
-			_ball->getContentSize().height*_ball->getScale());
+			_ball->getPosition().x -
+			(_ball->getContentSize().width * _ball->getScale() / 2),
+			_ball->getPosition().y -
+			(_ball->getContentSize().height * _ball->getScale() / 2),
+			_ball->getContentSize().width * _ball->getScale(),
+			_ball->getContentSize().height * _ball->getScale());
 
 	CCRect bogieRect = CCRectMake(
-			_bogie->getPosition().x - (_bogie->getContentSize().width*_bogie->getScale()/2),
-			_bogie->getPosition().y - (_bogie->getContentSize().height*_bogie->getScale()/2),
-			_bogie->getContentSize().width*_bogie->getScale(),
-			_bogie->getContentSize().height*_bogie->getScale());
+			_bogie->getPosition().x -
+			(_bogie->getContentSize().width * _bogie->getScale() / 2),
+			_bogie->getPosition().y -
+			(_bogie->getContentSize().height * _bogie->getScale() / 2),
+			_bogie->getContentSize().width * _bogie->getScale(),
+			_bogie->getContentSize().height * _bogie->getScale());
 
 	CCPoint ball_p = _ball->getPosition();
+	// vector to target (destination)
 	CCPoint targ_vect;
+	// get ball velocity
 	CCPoint* check_vel = static_cast<CCPoint*>(_ball->getUserData());
 	targ_vect = *check_vel;
-	//CCLog( "Check velocity (%f,%f)", check_vel->x, check_vel->y );
-	//targ_vect.normalize();
 	bool newAction = false;
 	CCPoint new_target;
-	int ball_destionation = 1000;
+	// it should be bigger than max screen size
+	int ball_destination = 1000;
 
-	//CCLog( "targ_vect = (%f,%f)", targ_vect.x, targ_vect.y );
-	//CCLog( "ball_p = (%f,%f)", ball_p.x, ball_p.y );
-	//CCLog( "pos: (%f, %f)", _ball->getPosition().x, _ball->getPosition().y );
 	if( ballRect.intersectsRect(left_rect) && targ_vect.x < 0 ) {
 		newAction = true;
 		targ_vect.x = fabs( targ_vect.x );
@@ -320,7 +324,7 @@ void HelloWorld::updateGame(float dt) {
 		targ_vect.y = -fabs( targ_vect.y );
 	}
 	if( ballRect.intersectsRect(down_rect) && targ_vect.y < 0 ) {
-		// Hey, we loose!
+		// here we loose ;(
 		GameOverScene *gameOverScene = GameOverScene::create();
 		gameOverScene->getLayer()->getLabel()->setString("You Lose :[");
     std::stringstream strs;
@@ -332,24 +336,16 @@ void HelloWorld::updateGame(float dt) {
 	}
 
 	// compute bogie-ball intersections
-	if( ballRect.intersectsRect(bogieRect) && targ_vect.y < 0 ) {
+	if( ballRect.intersectsRect(bogieRect) && targ_vect.y < 0 &&
+	    (_ball->getPositionY() +
+	    _ball->getContentSize().height / 2 * _ball->getScale()) >=
+	    (_bogie->getPositionY() +
+	    _bogie->getContentSize().height / 2 * _bogie->getScale())) {
 		newAction = true;
-		targ_vect.y = fabs( targ_vect.y );
+		targ_vect.y = fabs(targ_vect.y);
 	}
 
-	if( newAction ) {
-		_ball->stopAllActions();
-		new_target = targ_vect * ball_destionation + ball_p;
-		// Create the actions
-		float actualDuration = ( new_target - ball_p ).getLength() / ball_velocity;
-		CCFiniteTimeAction* actionMove = CCMoveTo::create( (float)actualDuration,
-				new_target );
-		_ball->runAction( CCSequence::create(actionMove, NULL) );
-		*check_vel = ( new_target - ball_p ) / actualDuration;
-		CCLog( "newAction: check_vel = (%f,%f)", check_vel->x, check_vel->y );
-	}
-
-
+	// compute ball-boxes intersections
 	CCArray* boxesToDelete = new CCArray;
 	CCObject* it = NULL;
 	CCObject* jt = NULL;
@@ -363,9 +359,25 @@ void HelloWorld::updateGame(float dt) {
 
 		if( ballRect.intersectsRect(boxRect) ) {
 			boxesToDelete->addObject( it );
+	    newAction = true;
+	    targ_vect.y *= -1;
 		}
 	}
 
+	// change ball trajectory
+  if( newAction ) {
+    _ball->stopAllActions();
+    new_target = targ_vect * ball_destination + ball_p;
+    // Create the action
+    float actualDuration = ( new_target - ball_p ).getLength() / ball_velocity;
+    CCFiniteTimeAction* actionMove = CCMoveTo::create( actualDuration,
+        new_target );
+    _ball->runAction( CCSequence::create(actionMove, NULL) );
+    *check_vel = ( new_target - ball_p ) / actualDuration;
+    CCLog( "newAction: check_vel = (%f,%f)", check_vel->x, check_vel->y );
+  }
+
+  // delete intersection-boxes
 	CCARRAY_FOREACH(boxesToDelete, jt)	{
 		CCSprite *box = dynamic_cast<CCSprite*>(jt);
 		_boxes->removeObject(box);
@@ -377,8 +389,8 @@ void HelloWorld::updateGame(float dt) {
 			CCUserDefault::sharedUserDefault()->setIntegerForKey("max_points_result",
 			    max_points_result);
 		}
-		if ( _boxes->data->num == 0 )
-		{
+		if ( _boxes->data->num == 0 ) {
+		  // No boxes left -> we win!
 			GameOverScene *gameOverScene = GameOverScene::create();
 			gameOverScene->getLayer()->getLabel()->setString("You Win!");
 			std::stringstream strs;
