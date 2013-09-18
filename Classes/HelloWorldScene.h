@@ -35,7 +35,7 @@ public:
 	void ccTouchesMoved(cocos2d::CCSet* touches, cocos2d::CCEvent* event);
 	void ccTouchesCancelled(cocos2d::CCSet* touches, cocos2d::CCEvent* event);
 	void ccTouchesEnded(cocos2d::CCSet* touches, cocos2d::CCEvent* event);
-    
+	void bogieMoveFinished(cocos2d::CCNode* sender);
 	void InitializeBoxes();
 	void CreateBox( cocos2d::CCPoint p );
 
@@ -56,6 +56,10 @@ protected:
 	const int touch_size;
 	bool bogie_is_drugging;
 	int boxes_quant;
+
+	// for ccTouchesMoved() event
+	cocos2d::CCPoint last_touches_moved_p;
+	double last_touches_moved_s;
 
 };
 

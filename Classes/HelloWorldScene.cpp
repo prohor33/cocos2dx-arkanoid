@@ -8,7 +8,19 @@ using namespace cocos2d;
 int HelloWorld::max_points_result = 0;
 
 HelloWorld::~HelloWorld() {
-	if (_targets) {
+  // release ball velocity
+  CCPoint* ball_vel = static_cast<CCPoint*>(_ball->getUserData());
+  if( ball_vel ) {
+    delete ball_vel;
+  }
+
+  // release bogie velocity
+  CCPoint* bogie_vel = static_cast<CCPoint*>(_bogie->getUserData());
+  if( bogie_vel ) {
+    delete bogie_vel;
+  }
+
+  if (_targets) {
 		_targets->release();
 		_targets = NULL;
 	}
@@ -97,6 +109,8 @@ bool HelloWorld::init() {
 		_bogie->setTextureRect(rect);
 		_bogie->setPosition(ccp(origin.x + visibleSize.width/2,
 		    origin.y + 20));
+    CCPoint* bogie_velocity = new CCPoint(CCPointZero);
+    _bogie->setUserData(bogie_velocity);
 
 		this->addChild(_bogie);
 
@@ -213,6 +227,10 @@ void HelloWorld::ccTouchesBegan(cocos2d::CCSet* touches, cocos2d::CCEvent* event
 
   if (touchRect.intersectsRect(bogieRect)) {
     bogie_is_drugging = true;
+    last_touches_moved_p = location;
+    struct cc_timeval now;
+    CCTime::gettimeofdayCocos2d(&now, NULL);
+    last_touches_moved_s = (now.tv_sec + (double)(now.tv_usec / 1000000.0f));
   }
 }
 
@@ -222,6 +240,17 @@ void HelloWorld::ccTouchesMoved(CCSet* touches, CCEvent* event)	{
   CCPoint location = myTouch->getLocation();
 
   if( bogie_is_drugging ) {
+    CCPoint delta_p = location - last_touches_moved_p;
+    last_touches_moved_p = location;
+    struct cc_timeval now;
+    double now_s;
+    CCTime::gettimeofdayCocos2d(&now, NULL);
+    now_s = (now.tv_sec + (double)(now.tv_usec / 1000000.0f));
+    double delta_s = now_s - last_touches_moved_s;
+    last_touches_moved_s = now_s;
+    CCPoint* bogie_vel = static_cast<CCPoint*>(_bogie->getUserData());
+    *bogie_vel = CCPoint(delta_p.x, 0) / delta_s;
+
     _bogie->stopAllActions();
     CCPoint bogie_p = _bogie->getPosition();
     CCPoint new_target;
@@ -229,10 +258,6 @@ void HelloWorld::ccTouchesMoved(CCSet* touches, CCEvent* event)	{
     new_target.y = bogie_p.y;
     // Create the actions
     _bogie->setPositionX(new_target.x);
-//    float actualDuration = ( new_target - bogie_p ).getLength() / bogie_velocity;
-//    CCFiniteTimeAction* actionMove = CCMoveTo::create( (float)actualDuration,
-//        new_target );
-//    _bogie->runAction( CCSequence::create(actionMove, NULL) );
   }
 
 }
@@ -242,12 +267,14 @@ void HelloWorld::ccTouchesCancelled(CCSet* touches, CCEvent* event)	{
   CCPoint location = myTouch->getLocation();
 
   bogie_is_drugging = false;
+  CCPoint* bogie_vel = static_cast<CCPoint*>(_bogie->getUserData());
+  *bogie_vel = CCPointZero;
 }
 
 void HelloWorld::ccTouchesEnded(CCSet* touches, CCEvent* event)	{
   bogie_is_drugging = false;
   // Choose one of the touches to work with
-  CCTouch* touch = (CCTouch*)( touches->anyObject() );
+  CCTouch* touch = (CCTouch*)(touches->anyObject());
   CCPoint location = touch->getLocation();
 
   CCLog("++++++++after  x:%f, y:%f", location.x, location.y);
@@ -261,12 +288,23 @@ void HelloWorld::ccTouchesEnded(CCSet* touches, CCEvent* event)	{
   new_target.x = location.x;
   new_target.y = bogie_p.y;
   // Create the actions
-  float actualDuration = ( new_target - bogie_p ).getLength() / bogie_velocity;
-  CCFiniteTimeAction* actionMove = CCMoveTo::create( (float)actualDuration,
-      new_target );
-  _bogie->runAction( CCSequence::create(actionMove, NULL) );
+  float actualDuration = (new_target - bogie_p).getLength() / bogie_velocity;
+  CCFiniteTimeAction* actionMove = CCMoveTo::create(actualDuration,
+      new_target);
+  CCFiniteTimeAction* actionMoveDone = CCCallFuncN::create(this,
+      callfuncN_selector(HelloWorld::bogieMoveFinished));
+
+  _bogie->runAction(CCSequence::create(actionMove,
+      actionMoveDone, NULL));
+  CCPoint* bogie_vel = static_cast<CCPoint*>(_bogie->getUserData());
+  *bogie_vel = (new_target - bogie_p) / actualDuration;
 
   //CocosDenshion::SimpleAudioEngine::sharedEngine()->playEffect("pew-pew-lei.wav");
+}
+
+void HelloWorld::bogieMoveFinished(CCNode* sender) {
+  CCPoint* bogie_vel = static_cast<CCPoint*>(_bogie->getUserData());
+  *bogie_vel = CCPointZero;
 }
 
 void HelloWorld::updateGame(float dt) {
@@ -343,6 +381,11 @@ void HelloWorld::updateGame(float dt) {
 	    _bogie->getContentSize().height / 2 * _bogie->getScale())) {
 		newAction = true;
 		targ_vect.y = fabs(targ_vect.y);
+		CCPoint* bogie_vel = static_cast<CCPoint*>(_bogie->getUserData());
+		if( fabs(bogie_vel->x) > targ_vect.getLength() )
+		  targ_vect.x += targ_vect.getLength() * bogie_vel->x / fabs(bogie_vel->x);
+		else
+		  targ_vect.x += bogie_vel->x / 2;
 	}
 
 	// compute ball-boxes intersections
