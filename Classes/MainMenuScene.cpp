@@ -28,14 +28,14 @@ bool MainMenuLayer::init()
 	if (CCLayerColor::initWithColor(ccc4(255, 255, 255, 255)))	{
     // Create a "close" menu item with close icon, it's an auto release object.
     CCMenuItemImage *pStartGameItem = CCMenuItemImage::create(
-        "start-the-game.png",
-        "start-the-game-sel.png",
+        "button-newgame.png",
+        "button-newgame-sel.png",
         this,
         menu_selector(MainMenuLayer::menuStartGameCallback));
 
     CCMenuItemImage *pExitItem = CCMenuItemImage::create(
-        "exit.png",
-        "exit-sel.png",
+        "button-exit.png",
+        "button-exit-sel.png",
         this,
         menu_selector(MainMenuLayer::menuExitCallback));
 
@@ -84,7 +84,7 @@ bool MainMenuLayer::init()
 
     // Above max points label
     v_space = 3;
-    CCLabelTTF* max_points_above_label = CCLabelTTF::create("Лучший результат",
+    CCLabelTTF* max_points_above_label = CCLabelTTF::create("Best Score",
         "Artial", 18);
     max_points_above_label->retain();
     max_points_above_label->setColor(ccc3(0, 0, 0));

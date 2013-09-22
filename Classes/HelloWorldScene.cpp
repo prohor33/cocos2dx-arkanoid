@@ -101,7 +101,7 @@ bool HelloWorld::init() {
 		////////////////////////////
 		// 3. bogie
 		_bogie = CCSprite::create();
-		CCTexture2D* texture = CCTextureCache::sharedTextureCache()->addImage("curret2.png");
+		CCTexture2D* texture = CCTextureCache::sharedTextureCache()->addImage("bogie.png");
 		_bogie->setTexture(texture);
 		CCRect rect = CCRectZero;
 		rect.size = texture->getContentSize();

@@ -42,7 +42,7 @@ bool GameOverLayer::init()  {
 		    _label->getPositionY() + _label->getFontSize() + v_space));
 		this->addChild(_points_label);
 
-		CCLabelTTF* above_points_label = CCLabelTTF::create("Полученные очки",
+		CCLabelTTF* above_points_label = CCLabelTTF::create("Your Score",
 		    "Artial", 32);
 		above_points_label->retain();
 		above_points_label->setColor(ccc3(0, 0, 0));
